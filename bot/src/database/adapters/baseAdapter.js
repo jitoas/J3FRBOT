@@ -41,4 +41,36 @@ export class BaseAdapter {
   async getLeaderboard(guildId, limit = 10) {
     throw new Error('Method getLeaderboard() must be implemented.');
   }
+
+  async getLevelThresholds(guildId) {
+    throw new Error('Method getLevelThresholds() must be implemented.');
+  }
+
+  async setLevelThreshold(guildId, level, requiredXp) {
+    throw new Error('Method setLevelThreshold() must be implemented.');
+  }
+
+  async deleteLevelThreshold(guildId, level) {
+    throw new Error('Method deleteLevelThreshold() must be implemented.');
+  }
+
+  async setLevelThresholdsBatch(guildId, thresholds) {
+    throw new Error('Method setLevelThresholdsBatch() must be implemented.');
+  }
+
+  async getLevelRoles(guildId) {
+    throw new Error('Method getLevelRoles() must be implemented.');
+  }
+
+  async addLevelRole(guildId, roleData) {
+    throw new Error('Method addLevelRole() must be implemented.');
+  }
+
+  async updateLevelRole(guildId, id, roleData) {
+    throw new Error('Method updateLevelRole() must be implemented.');
+  }
+
+  async deleteLevelRole(guildId, id) {
+    throw new Error('Method deleteLevelRole() must be implemented.');
+  }
 }

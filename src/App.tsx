@@ -18,11 +18,13 @@ import {
 import { WelcomeStudio } from './components/WelcomeStudio';
 import { LogsSimulator } from './components/LogsSimulator';
 import { CommandsSimulator } from './components/CommandsSimulator';
+import { LevelsManager } from './components/LevelsManager';
 import { FileExplorer } from './components/FileExplorer';
 import { DeploymentGuide } from './components/DeploymentGuide';
+import { Trophy } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'welcome' | 'logs' | 'commands' | 'explorer' | 'deploy'>('welcome');
+  const [activeTab, setActiveTab] = useState<'welcome' | 'logs' | 'commands' | 'levels' | 'explorer' | 'deploy'>('welcome');
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
@@ -74,6 +76,7 @@ export default function App() {
               { id: 'welcome', label: 'استوديو بطاقات الترحيب', icon: Sparkles },
               { id: 'logs', label: 'سجلات الأحداث (15+ Logs)', icon: ScrollText },
               { id: 'commands', label: 'أوامر الإشراف والـ Slash', icon: Terminal },
+              { id: 'levels', label: 'إدارة المستويات (Levels & XP)', icon: Trophy },
               { id: 'explorer', label: 'مستكشف الكود والملفات', icon: Layers },
               { id: 'deploy', label: 'دليل النشر (GitHub & Render)', icon: Rocket }
             ].map(tab => {
@@ -104,6 +107,7 @@ export default function App() {
         {activeTab === 'welcome' && <WelcomeStudio />}
         {activeTab === 'logs' && <LogsSimulator />}
         {activeTab === 'commands' && <CommandsSimulator />}
+        {activeTab === 'levels' && <LevelsManager />}
         {activeTab === 'explorer' && <FileExplorer />}
         {activeTab === 'deploy' && <DeploymentGuide />}
       </main>

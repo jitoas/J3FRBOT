@@ -27,7 +27,24 @@ export const botConfig = {
     logsChannelId: process.env.LOG_CHANNEL_ID || null,
     logsEnabled: true,
     commandsChannelId: process.env.COMMANDS_CHANNEL_ID || null,
-    levelingEnabled: false,
+    levelingEnabled: true,
+    xpPerMessage: 10,
+    xpCooldownSeconds: 60,
+    levelupMessageEnabled: true,
+    levelupChannelId: null, // null = same channel where member sent message
+    levelupMessage: 'مبروك {user}! وصلت للمستوى {level} 🎉',
+    defaultLevelThresholds: [
+      { level: 1, requiredXp: 100 },
+      { level: 2, requiredXp: 250 },
+      { level: 3, requiredXp: 500 },
+      { level: 4, requiredXp: 900 },
+      { level: 5, requiredXp: 1500 },
+      { level: 6, requiredXp: 2500 },
+      { level: 7, requiredXp: 4000 },
+      { level: 8, requiredXp: 6000 },
+      { level: 9, requiredXp: 8500 },
+      { level: 10, requiredXp: 12000 }
+    ],
     xpRate: 1.0,
     embedColor: 0x5865F2, // Discord Blurple
     successColor: 0x57F287, // Discord Green
