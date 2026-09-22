@@ -80,16 +80,20 @@ export class WelcomeCardService {
           const bgImg = await loadImage(backgroundPath);
           ctx.drawImage(bgImg, 0, 0, width, height);
           hasDrawnBg = true;
+          logger.info(`[WELCOME] Background loaded successfully from URL/Data`);
         } else {
           const resolvedBg = path.resolve(backgroundPath);
           if (fs.existsSync(resolvedBg)) {
             const bgImg = await loadImage(resolvedBg);
             ctx.drawImage(bgImg, 0, 0, width, height);
             hasDrawnBg = true;
+            logger.info(`[WELCOME] Background loaded successfully from ${resolvedBg}`);
+          } else {
+            logger.warn(`[WELCOME] Background file not found at ${resolvedBg}`);
           }
         }
       } catch (err) {
-        logger.warn(`Could not load background at ${backgroundPath}: ${err.message}`);
+        logger.warn(`[WELCOME] Could not load background at ${backgroundPath}: ${err.message}`);
       }
     }
 
@@ -97,6 +101,7 @@ export class WelcomeCardService {
       // Solid clean neutral canvas if no user image exists yet
       ctx.fillStyle = '#111827';
       ctx.fillRect(0, 0, width, height);
+      logger.info(`[WELCOME] Background loaded: clean dark canvas fallback`);
     }
 
     // 2. Draw Avatar (if enabled)
@@ -111,8 +116,10 @@ export class WelcomeCardService {
       ctx.closePath();
       ctx.clip();
 
-      try {
-        if (avatarUrl) {
+      let avatarLoaded = false;
+
+      if (avatarUrl) {
+        try {
           const avatarImg = await loadImage(avatarUrl);
           ctx.drawImage(
             avatarImg,
@@ -121,15 +128,45 @@ export class WelcomeCardService {
             avRadius * 2,
             avRadius * 2
           );
-        } else {
-          ctx.fillStyle = '#374151';
-          ctx.fillRect(avX - avRadius, avY - avRadius, avRadius * 2, avRadius * 2);
+          avatarLoaded = true;
+          logger.info(`[WELCOME] Avatar loaded successfully`);
+        } catch (err) {
+          logger.warn(`[WELCOME] Could not load primary avatar (${avatarUrl}): ${err.message}`);
         }
-      } catch (err) {
-        logger.warn(`Could not load avatar: ${err.message}`);
-        ctx.fillStyle = '#374151';
-        ctx.fillRect(avX - avRadius, avY - avRadius, avRadius * 2, avRadius * 2);
       }
+
+      // Secondary fallback: Discord default avatar
+      if (!avatarLoaded) {
+        try {
+          const defaultAvatarUrl = 'https://cdn.discordapp.com/embed/avatars/0.png';
+          const defaultImg = await loadImage(defaultAvatarUrl);
+          ctx.drawImage(
+            defaultImg,
+            avX - avRadius,
+            avY - avRadius,
+            avRadius * 2,
+            avRadius * 2
+          );
+          avatarLoaded = true;
+          logger.info(`[WELCOME] Avatar loaded: default Discord avatar fallback used`);
+        } catch (err) {
+          logger.warn(`[WELCOME] Default avatar fallback failed: ${err.message}`);
+        }
+      }
+
+      // Final fallback: Draw colored avatar placeholder with user initial
+      if (!avatarLoaded) {
+        ctx.fillStyle = '#4f46e5';
+        ctx.fillRect(avX - avRadius, avY - avRadius, avRadius * 2, avRadius * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${avRadius}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const initial = (username || 'U').charAt(0).toUpperCase();
+        ctx.fillText(initial, avX, avY);
+        logger.info(`[WELCOME] Avatar loaded: initial letter placeholder '${initial}' used`);
+      }
+
       ctx.restore();
     }
 
