@@ -6,7 +6,7 @@ services:
     name: discord-bot-master
     runtime: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -18,4 +18,6 @@ services:
       - key: CLIENT_ID
         sync: false
       - key: DB_TYPE
-        value: json
+        value: postgres
+      - key: DATABASE_URL
+        sync: false
