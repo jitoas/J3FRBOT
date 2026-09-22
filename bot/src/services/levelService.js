@@ -1,3 +1,4 @@
+import { PermissionFlagsBits } from 'discord.js';
 import { getDatabase } from '../database/index.js';
 import { logger } from '../utils/logger.js';
 import { botConfig } from '../config/botConfig.js';
@@ -183,6 +184,8 @@ export class LevelService {
 
   /**
    * Dispatches the customizable level-up notification.
+   * Resolves destination channel strictly by Discord Channel ID if provided,
+   * falling back to the current message channel if the ID is empty.
    */
   static async sendLevelUpMessage(message, config, newLevel, totalXp) {
     try {
@@ -197,19 +200,67 @@ export class LevelService {
 
       // Determine destination channel
       let targetChannel = message.channel;
-      if (config.levelupChannelId && config.levelupChannelId !== 'same') {
-        const configuredChannel = message.guild.channels.cache.get(config.levelupChannelId) ||
-                                  message.guild.channels.cache.find(c => c.name === config.levelupChannelId || c.id === config.levelupChannelId);
-        if (configuredChannel && configuredChannel.isTextBased()) {
-          targetChannel = configuredChannel;
+      const configuredChannelId = config.levelupChannelId ? String(config.levelupChannelId).trim() : '';
+
+      // If Level Up Channel ID is provided: strictly send to this channel ID only
+      if (configuredChannelId && configuredChannelId !== 'same') {
+        // Look up channel STRICTLY by Discord Channel ID (no name matching)
+        let foundChannel = message.guild.channels.cache.get(configuredChannelId);
+
+        if (!foundChannel) {
+          try {
+            foundChannel = await message.guild.channels.fetch(configuredChannelId).catch(() => null);
+          } catch (fetchErr) {
+            logger.warn(`[Level System Warning] Error fetching Level Up Channel ID '${configuredChannelId}': ${fetchErr.message}`);
+          }
         }
+
+        // 1. Verify channel existence
+        if (!foundChannel) {
+          logger.warn(`[Level System Warning] Level Up Channel ID '${configuredChannelId}' was not found in guild '${message.guild.name}' (${message.guild.id}). Message will not be sent.`);
+          return;
+        }
+
+        // 2. Verify channel belongs to the same guild
+        const channelGuildId = foundChannel.guildId || foundChannel.guild?.id;
+        if (channelGuildId !== message.guild.id) {
+          logger.warn(`[Level System Warning] Level Up Channel ID '${configuredChannelId}' belongs to guild '${channelGuildId}', not current guild '${message.guild.id}'. Message will not be sent.`);
+          return;
+        }
+
+        // 3. Verify channel is text-based
+        if (!foundChannel.isTextBased || !foundChannel.isTextBased()) {
+          logger.warn(`[Level System Warning] Level Up Channel ID '${configuredChannelId}' (#${foundChannel.name}) is not a text-based channel.`);
+          return;
+        }
+
+        // 4. Verify bot permissions (ViewChannel, SendMessages, EmbedLinks)
+        const botMember = message.guild.members.me || await message.guild.members.fetchMe().catch(() => null);
+        if (botMember) {
+          const permissions = foundChannel.permissionsFor(botMember);
+          const hasView = permissions?.has(PermissionFlagsBits.ViewChannel);
+          const hasSend = permissions?.has(PermissionFlagsBits.SendMessages);
+          const hasEmbed = permissions?.has(PermissionFlagsBits.EmbedLinks);
+
+          if (!hasView || !hasSend) {
+            logger.warn(`[Level System Warning] Bot lacks required permissions to send Level Up messages to Channel ID '${configuredChannelId}' (#${foundChannel.name}) in guild '${message.guild.name}'. [ViewChannel: ${Boolean(hasView)}, SendMessages: ${Boolean(hasSend)}]. Bot will continue without error.`);
+            return;
+          }
+
+          if (!hasEmbed) {
+            logger.warn(`[Level System Warning] Bot lacks EmbedLinks permission in Level Up Channel ID '${configuredChannelId}' (#${foundChannel.name}). If embeds are used, please grant EmbedLinks.`);
+          }
+        }
+
+        targetChannel = foundChannel;
       }
 
+      // If configuredChannelId was empty, targetChannel remains message.channel (default current channel behavior)
       await targetChannel.send({ content: formatted }).catch(err => {
-        logger.warn(`Failed to send level up message in channel ${targetChannel.id}: ${err.message}`);
+        logger.warn(`[Level System Warning] Failed to send level up message to channel ID '${targetChannel.id}' (#${targetChannel.name || 'unknown'}): ${err.message}`);
       });
     } catch (sendError) {
-      logger.error(`Error sending level up message: ${sendError.message}`);
+      logger.warn(`[Level System Warning] Error while processing level up message: ${sendError.message}`);
     }
   }
 

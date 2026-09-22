@@ -31,7 +31,7 @@ export const botConfig = {
     xpPerMessage: 10,
     xpCooldownSeconds: 60,
     levelupMessageEnabled: true,
-    levelupChannelId: null, // null = same channel where member sent message
+    levelupChannelId: process.env.LEVELUP_CHANNEL_ID || null, // null = same channel where member sent message
     levelupMessage: 'مبروك {user}! وصلت للمستوى {level} 🎉',
     defaultLevelThresholds: [
       { level: 1, requiredXp: 100 },

@@ -117,7 +117,7 @@ export const startWebServer = (client) => {
         xpPerMessage: parseInt(req.body.xpPerMessage, 10) || 10,
         xpCooldownSeconds: parseInt(req.body.xpCooldownSeconds, 10) || 60,
         levelupMessageEnabled: req.body.levelupMessageEnabled !== false,
-        levelupChannelId: req.body.levelupChannelId || null,
+        levelupChannelId: req.body.levelupChannelId ? String(req.body.levelupChannelId).trim() : null,
         levelupMessage: req.body.levelupMessage
       });
       res.json({ success: true, config: updated });
