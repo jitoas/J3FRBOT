@@ -1,0 +1,32 @@
+{
+  "name": "discord-bot-master",
+  "version": "1.0.0",
+  "description": "A standalone, production-ready Discord Bot featuring Welcome Cards, Logging, Moderation, and Modular Leveling Architecture.",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node src/index.js",
+    "deploy-commands": "node src/deploy-commands.js"
+  },
+  "keywords": [
+    "discord",
+    "discord-bot",
+    "discord-js",
+    "moderation",
+    "welcome-card",
+    "audit-logs",
+    "render-ready"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.66",
+    "discord.js": "^14.18.0",
+    "dotenv": "^17.2.3",
+    "express": "^4.21.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

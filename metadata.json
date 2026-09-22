@@ -1,0 +1,7 @@
+{
+  "name": "Discord Bot Master Node.js",
+  "description": "مشروع ديسكورد بوت متكامل واحترافي بنظام Welcome Card، نظام Logs شامل، أوامر Moderation، معمارية Levels، وقاعدة بيانات قابلة للتوسع للنشر على Render وGitHub.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

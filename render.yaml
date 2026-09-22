@@ -1,0 +1,21 @@
+# Render Blueprint Specification
+# See https://render.com/docs/blueprint-spec for details
+
+services:
+  - type: web
+    name: discord-bot-master
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: DISCORD_TOKEN
+        sync: false
+      - key: CLIENT_ID
+        sync: false
+      - key: DB_TYPE
+        value: json
