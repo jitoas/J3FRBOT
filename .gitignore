@@ -11,7 +11,8 @@ node_modules/
 .env.production.local
 
 # Persistent Database & Storage Files
-data/
+/data/
+!/src/data/
 *.sqlite
 *.sqlite3
 *.db
