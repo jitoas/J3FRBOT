@@ -21,11 +21,13 @@ export default {
         return;
       }
 
-      const welcomeChannel = guild.channels.cache.get(config.welcomeChannelId) || 
-                             await guild.channels.fetch(config.welcomeChannelId).catch(() => null);
+      const targetChannel = config.welcomeChannelId;
+      const welcomeChannel = guild.channels.cache.get(targetChannel) || 
+                             guild.channels.cache.find(c => c.name === targetChannel || c.name.toLowerCase() === targetChannel.toLowerCase()) ||
+                             (/^\d+$/.test(targetChannel) ? await guild.channels.fetch(targetChannel).catch(() => null) : null);
 
       if (!welcomeChannel || !welcomeChannel.isTextBased()) {
-        logger.warn(`Configured welcome channel ${config.welcomeChannelId} not found or not text-based in ${guild.id}`);
+        logger.warn(`Configured welcome channel '${targetChannel}' not found or not text-based in guild ${guild.id}`);
         return;
       }
 

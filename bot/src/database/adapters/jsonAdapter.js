@@ -74,15 +74,15 @@ export class JsonDatabaseAdapter extends BaseAdapter {
       // Return default config merged with guildId
       return {
         guildId,
-        welcomeChannelId: null,
+        welcomeChannelId: botConfig.defaults.welcomeChannelId || null,
         welcomeEnabled: botConfig.defaults.welcomeEnabled,
         welcomeMessage: botConfig.defaults.welcomeMessage,
         welcomeCustomText: botConfig.defaults.welcomeCustomText,
         welcomeBackgroundPath: botConfig.defaults.welcomeBackgroundPath,
         welcomeCardConfig: { ...botConfig.defaults.welcomeCardConfig },
-        logsChannelId: null,
+        logsChannelId: botConfig.defaults.logsChannelId || null,
         logsEnabled: botConfig.defaults.logsEnabled,
-        commandsChannelId: null,
+        commandsChannelId: botConfig.defaults.commandsChannelId || null,
         levelingEnabled: botConfig.defaults.levelingEnabled,
         xpRate: botConfig.defaults.xpRate,
         createdAt: new Date().toISOString(),

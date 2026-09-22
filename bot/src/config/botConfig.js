@@ -13,6 +13,7 @@ export const botConfig = {
   
   // Default Guild Configuration fallback values
   defaults: {
+    welcomeChannelId: process.env.WELCOME_CHANNEL_ID || null,
     welcomeEnabled: true,
     welcomeMessage: 'Welcome {user} to **{server}**! We are glad to have you here 🎉',
     welcomeCustomText: 'WELCOME TO THE SERVER',
@@ -23,8 +24,9 @@ export const botConfig = {
       welcomeText: { enabled: true, text: 'WELCOME', x: 240, y: 120, fontSize: 22, color: '#38bdf8' },
       memberCount: { enabled: false, format: 'Member #{count}', x: 240, y: 225, fontSize: 16, color: '#cbd5e1' }
     },
+    logsChannelId: process.env.LOG_CHANNEL_ID || null,
     logsEnabled: true,
-    commandsChannelId: null,
+    commandsChannelId: process.env.COMMANDS_CHANNEL_ID || null,
     levelingEnabled: false,
     xpRate: 1.0,
     embedColor: 0x5865F2, // Discord Blurple

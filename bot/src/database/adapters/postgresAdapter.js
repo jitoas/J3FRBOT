@@ -95,15 +95,15 @@ export class PostgresDatabaseAdapter extends BaseAdapter {
     if (res.rows.length === 0) {
       return {
         guildId,
-        welcomeChannelId: null,
+        welcomeChannelId: botConfig.defaults.welcomeChannelId || null,
         welcomeEnabled: botConfig.defaults.welcomeEnabled,
         welcomeMessage: botConfig.defaults.welcomeMessage,
         welcomeCustomText: botConfig.defaults.welcomeCustomText,
         welcomeBackgroundPath: botConfig.defaults.welcomeBackgroundPath,
         welcomeCardConfig: { ...botConfig.defaults.welcomeCardConfig },
-        logsChannelId: null,
+        logsChannelId: botConfig.defaults.logsChannelId || null,
         logsEnabled: botConfig.defaults.logsEnabled,
-        commandsChannelId: null,
+        commandsChannelId: botConfig.defaults.commandsChannelId || null,
         levelingEnabled: botConfig.defaults.levelingEnabled,
         xpRate: botConfig.defaults.xpRate,
         createdAt: new Date().toISOString(),
@@ -114,15 +114,15 @@ export class PostgresDatabaseAdapter extends BaseAdapter {
     const row = res.rows[0];
     return {
       guildId: row.guild_id,
-      welcomeChannelId: row.welcome_channel_id || null,
+      welcomeChannelId: row.welcome_channel_id || botConfig.defaults.welcomeChannelId || null,
       welcomeEnabled: row.welcome_enabled !== false,
       welcomeMessage: row.welcome_message || botConfig.defaults.welcomeMessage,
       welcomeCustomText: botConfig.defaults.welcomeCustomText,
       welcomeBackgroundPath: row.welcome_background_path || botConfig.defaults.welcomeBackgroundPath,
       welcomeCardConfig: row.welcome_card_config || { ...botConfig.defaults.welcomeCardConfig },
-      logsChannelId: row.logs_channel_id || null,
+      logsChannelId: row.logs_channel_id || botConfig.defaults.logsChannelId || null,
       logsEnabled: row.logs_enabled !== false,
-      commandsChannelId: row.commands_channel_id || null,
+      commandsChannelId: row.commands_channel_id || botConfig.defaults.commandsChannelId || null,
       levelingEnabled: row.leveling_enabled === true,
       xpRate: parseFloat(row.xp_rate) || botConfig.defaults.xpRate,
       updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : new Date().toISOString()

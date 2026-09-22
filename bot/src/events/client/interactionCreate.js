@@ -19,7 +19,12 @@ export default {
 
     // Check channel restriction for staff / moderation commands
     if (interaction.guildId && STAFF_COMMANDS.has(interaction.commandName)) {
-      const channelCheck = await checkCommandsChannel(interaction.guildId, interaction.channelId);
+      const channelCheck = await checkCommandsChannel(
+        interaction.guildId, 
+        interaction.channelId, 
+        interaction.channel?.name, 
+        interaction.guild
+      );
       if (!channelCheck.allowed) {
         const channelErrorEmbed = createErrorEmbed(
           'قناة غير مخصصة للأوامر',

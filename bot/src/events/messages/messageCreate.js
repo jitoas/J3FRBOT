@@ -20,7 +20,12 @@ export default {
     if (isTiPrefix) {
       try {
         // Channel restriction verification
-        const channelCheck = await checkCommandsChannel(message.guild.id, message.channel.id);
+        const channelCheck = await checkCommandsChannel(
+          message.guild.id, 
+          message.channel.id, 
+          message.channel?.name, 
+          message.guild
+        );
         if (!channelCheck.allowed) {
           const channelErrorEmbed = createErrorEmbed(
             'قناة غير مخصصة للأوامر',

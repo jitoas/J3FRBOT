@@ -5,19 +5,34 @@ import { getDatabase } from '../database/index.js';
  * Checks if a staff or moderation command is being executed in the designated commands channel.
  * If commandsChannelId is configured and the channel differs, rejects execution.
  */
-export const checkCommandsChannel = async (guildId, channelId) => {
+export const checkCommandsChannel = async (guildId, channelId, channelName = null, guild = null) => {
   if (!guildId) return { allowed: true };
   
   try {
     const db = getDatabase();
     const config = await db.getGuildConfig(guildId);
     
-    if (config.commandsChannelId && config.commandsChannelId !== channelId) {
-      return {
-        allowed: false,
-        commandsChannelId: config.commandsChannelId,
-        reason: `⚠️ أوامر الإدارة والبوت مسموحة فقط في قناة <#${config.commandsChannelId}>.`
-      };
+    if (config.commandsChannelId) {
+      const target = config.commandsChannelId;
+      const isIdMatch = target === channelId;
+      const isNameMatch = Boolean(channelName && (target === channelName || target.toLowerCase() === channelName.toLowerCase()));
+
+      let resolvedChannelId = /^\d+$/.test(target) ? target : null;
+      if (!resolvedChannelId && guild?.channels?.cache) {
+        const found = guild.channels.cache.find(c => c.name === target || c.name.toLowerCase() === target.toLowerCase());
+        if (found) resolvedChannelId = found.id;
+      }
+
+      const isAllowed = isIdMatch || isNameMatch || (resolvedChannelId && resolvedChannelId === channelId);
+
+      if (!isAllowed) {
+        const displayChannel = resolvedChannelId ? `<#${resolvedChannelId}>` : (/^\d+$/.test(target) ? `<#${target}>` : `**#${target}**`);
+        return {
+          allowed: false,
+          commandsChannelId: resolvedChannelId || target,
+          reason: `⚠️ أوامر الإدارة والبوت مسموحة فقط في قناة ${displayChannel}.`
+        };
+      }
     }
   } catch (error) {
     // If DB fails, do not crash, allow execution

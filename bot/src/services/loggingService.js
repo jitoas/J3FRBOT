@@ -18,8 +18,10 @@ export class LoggingService {
         return null;
       }
 
-      const channel = guild.channels.cache.get(config.logsChannelId) || 
-                      await guild.channels.fetch(config.logsChannelId).catch(() => null);
+      const targetChannel = config.logsChannelId;
+      const channel = guild.channels.cache.get(targetChannel) || 
+                      guild.channels.cache.find(c => c.name === targetChannel || c.name.toLowerCase() === targetChannel.toLowerCase()) ||
+                      (/^\d+$/.test(targetChannel) ? await guild.channels.fetch(targetChannel).catch(() => null) : null);
 
       if (!channel || !channel.isTextBased()) {
         return null;
