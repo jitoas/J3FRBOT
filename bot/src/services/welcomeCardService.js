@@ -72,11 +72,21 @@ export class WelcomeCardService {
     let hasDrawnBg = false;
     if (backgroundPath) {
       try {
-        const resolvedBg = path.resolve(backgroundPath);
-        if (fs.existsSync(resolvedBg)) {
-          const bgImg = await loadImage(resolvedBg);
+        if (
+          backgroundPath.startsWith('http://') ||
+          backgroundPath.startsWith('https://') ||
+          backgroundPath.startsWith('data:')
+        ) {
+          const bgImg = await loadImage(backgroundPath);
           ctx.drawImage(bgImg, 0, 0, width, height);
           hasDrawnBg = true;
+        } else {
+          const resolvedBg = path.resolve(backgroundPath);
+          if (fs.existsSync(resolvedBg)) {
+            const bgImg = await loadImage(resolvedBg);
+            ctx.drawImage(bgImg, 0, 0, width, height);
+            hasDrawnBg = true;
+          }
         }
       } catch (err) {
         logger.warn(`Could not load background at ${backgroundPath}: ${err.message}`);

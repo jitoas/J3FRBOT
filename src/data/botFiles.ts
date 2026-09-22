@@ -112,6 +112,17 @@ export const startWebServer = (client) => {
     });
   });
 
+  // Welcome Studio Card Config API
+  app.get('/api/welcome/config', async (req, res) => {
+    const config = await getDatabase().getGuildConfig(req.query.guildId);
+    res.json({ welcomeCardConfig: config.welcomeCardConfig, welcomeBackgroundPath: config.welcomeBackgroundPath });
+  });
+
+  app.post('/api/welcome/config', async (req, res) => {
+    const updated = await getDatabase().setGuildConfig(req.body.guildId, req.body);
+    res.json({ success: true, config: updated });
+  });
+
   // Serve static assets from built React frontend
   app.use(express.static(distPath));
 

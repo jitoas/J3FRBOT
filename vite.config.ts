@@ -1,11 +1,28 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig} from 'vite';
+import {defineConfig, Plugin} from 'vite';
+
+function apiPlugin(): Plugin {
+  return {
+    name: 'api-server-middleware',
+    async configureServer(server) {
+      try {
+        const { initDatabase } = await import('./bot/src/database/index.js');
+        const { createApp } = await import('./bot/src/server.js');
+        await initDatabase();
+        const app = createApp(null);
+        server.middlewares.use(app);
+      } catch (err) {
+        console.error('Failed to mount API middleware in Vite dev server:', err);
+      }
+    }
+  };
+}
 
 export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), apiPlugin()],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

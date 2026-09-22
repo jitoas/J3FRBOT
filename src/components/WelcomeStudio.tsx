@@ -1,5 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Download, Upload, Trash2, Sliders, Check, Copy, User, Type, Hash, Sparkles, Move, Eye, EyeOff } from 'lucide-react';
+import {
+  Download,
+  Upload,
+  Trash2,
+  Sliders,
+  Check,
+  Copy,
+  User,
+  Type,
+  Hash,
+  Sparkles,
+  Move,
+  Eye,
+  EyeOff,
+  Save,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  Server
+} from 'lucide-react';
 
 interface ElementPosition {
   enabled: boolean;
@@ -84,6 +103,14 @@ export const WelcomeStudio: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Guild & DB Persistence State
+  const [guildId, setGuildId] = useState<string>('default_guild');
+  const [guilds, setGuilds] = useState<Array<{ id: string; name: string; icon?: string }>>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
+  const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   // Card Content Data
   const [username, setUsername] = useState('AlexGamer');
   const [serverName, setServerName] = useState('Community Kingdom');
@@ -103,6 +130,162 @@ export const WelcomeStudio: React.FC = () => {
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isCopied, setIsCopied] = useState(false);
 
+  // Load welcome config for specific guild
+  const loadWelcomeConfig = async (targetGuildId: string) => {
+    try {
+      const res = await fetch(`/api/welcome/config?guildId=${encodeURIComponent(targetGuildId)}`);
+      if (res.ok) {
+        const data = await res.json();
+        
+        // Restore welcomeCardConfig (Avatar, Username, Welcome Text, Member Count)
+        if (data.welcomeCardConfig) {
+          const cc = data.welcomeCardConfig;
+          setConfig({
+            avatar: {
+              enabled: cc.avatar?.enabled !== undefined ? Boolean(cc.avatar.enabled) : DEFAULT_CONFIG.avatar.enabled,
+              x: Number.isFinite(cc.avatar?.x) ? Number(cc.avatar.x) : DEFAULT_CONFIG.avatar.x,
+              y: Number.isFinite(cc.avatar?.y) ? Number(cc.avatar.y) : DEFAULT_CONFIG.avatar.y,
+              size: Number.isFinite(cc.avatar?.size) ? Number(cc.avatar.size) : DEFAULT_CONFIG.avatar.size,
+            },
+            username: {
+              enabled: cc.username?.enabled !== undefined ? Boolean(cc.username.enabled) : DEFAULT_CONFIG.username.enabled,
+              x: Number.isFinite(cc.username?.x) ? Number(cc.username.x) : DEFAULT_CONFIG.username.x,
+              y: Number.isFinite(cc.username?.y) ? Number(cc.username.y) : DEFAULT_CONFIG.username.y,
+              fontSize: Number.isFinite(cc.username?.fontSize) ? Number(cc.username.fontSize) : DEFAULT_CONFIG.username.fontSize,
+              color: cc.username?.color || DEFAULT_CONFIG.username.color,
+            },
+            welcomeText: {
+              enabled: cc.welcomeText?.enabled !== undefined ? Boolean(cc.welcomeText.enabled) : DEFAULT_CONFIG.welcomeText.enabled,
+              text: cc.welcomeText?.text !== undefined ? cc.welcomeText.text : (data.welcomeCustomText || DEFAULT_CONFIG.welcomeText.text),
+              x: Number.isFinite(cc.welcomeText?.x) ? Number(cc.welcomeText.x) : DEFAULT_CONFIG.welcomeText.x,
+              y: Number.isFinite(cc.welcomeText?.y) ? Number(cc.welcomeText.y) : DEFAULT_CONFIG.welcomeText.y,
+              fontSize: Number.isFinite(cc.welcomeText?.fontSize) ? Number(cc.welcomeText.fontSize) : DEFAULT_CONFIG.welcomeText.fontSize,
+              color: cc.welcomeText?.color || DEFAULT_CONFIG.welcomeText.color,
+            },
+            memberCount: {
+              enabled: cc.memberCount?.enabled !== undefined ? Boolean(cc.memberCount.enabled) : DEFAULT_CONFIG.memberCount.enabled,
+              format: cc.memberCount?.format || DEFAULT_CONFIG.memberCount.format,
+              x: Number.isFinite(cc.memberCount?.x) ? Number(cc.memberCount.x) : DEFAULT_CONFIG.memberCount.x,
+              y: Number.isFinite(cc.memberCount?.y) ? Number(cc.memberCount.y) : DEFAULT_CONFIG.memberCount.y,
+              fontSize: Number.isFinite(cc.memberCount?.fontSize) ? Number(cc.memberCount.fontSize) : DEFAULT_CONFIG.memberCount.fontSize,
+              color: cc.memberCount?.color || DEFAULT_CONFIG.memberCount.color,
+            }
+          });
+        }
+
+        // Restore welcomeBackgroundPath
+        if (data.welcomeBackgroundPath !== undefined && data.welcomeBackgroundPath !== null) {
+          const pathVal = String(data.welcomeBackgroundPath).trim();
+          if (pathVal) {
+            setBgImageSrc(pathVal);
+            setBgPath(pathVal);
+          } else {
+            setBgImageSrc('');
+            setBgPath('');
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load welcome configuration from database:', err);
+    }
+  };
+
+  // Load configuration from API on mount
+  useEffect(() => {
+    let isMounted = true;
+
+    const initData = async () => {
+      setIsLoading(true);
+      try {
+        let activeGuildId = 'default_guild';
+        try {
+          const gRes = await fetch('/api/guilds');
+          if (gRes.ok) {
+            const gData = await gRes.json();
+            if (isMounted && Array.isArray(gData.guilds) && gData.guilds.length > 0) {
+              setGuilds(gData.guilds);
+              activeGuildId = gData.guilds[0].id;
+              setGuildId(activeGuildId);
+              if (gData.guilds[0].name) {
+                setServerName(gData.guilds[0].name);
+              }
+            }
+          }
+        } catch {
+          // Keep default_guild
+        }
+
+        if (isMounted) {
+          await loadWelcomeConfig(activeGuildId);
+        }
+      } catch (err) {
+        console.error('Failed to initialize welcome studio:', err);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    initData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleGuildChange = async (newGuildId: string) => {
+    setGuildId(newGuildId);
+    const selected = guilds.find(g => g.id === newGuildId);
+    if (selected?.name) {
+      setServerName(selected.name);
+    }
+    setIsLoading(true);
+    await loadWelcomeConfig(newGuildId);
+    setIsLoading(false);
+  };
+
+  // Permanent persistence handler to PostgreSQL/Supabase
+  const handleSaveConfig = async () => {
+    setIsSaving(true);
+    setStatusMessage(null);
+    setSaveSuccess(false);
+
+    try {
+      const backgroundToSave = bgImageSrc || bgPath || '';
+      const response = await fetch('/api/welcome/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          guildId: guildId || 'default_guild',
+          welcomeCardConfig: config,
+          welcomeBackgroundPath: backgroundToSave,
+          welcomeCustomText: config.welcomeText.text || 'WELCOME'
+        })
+      });
+
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setSaveSuccess(true);
+        setStatusMessage({
+          type: 'success',
+          text: 'تم حفظ جميع إعدادات Welcome Studio وموقع العناصر والخلفية بنجاح وبشكل دائم في قاعدة البيانات!'
+        });
+        setTimeout(() => setSaveSuccess(false), 3500);
+      } else {
+        setStatusMessage({
+          type: 'error',
+          text: data.error || 'حدث خطأ أثناء حفظ الإعدادات في الخادم'
+        });
+      }
+    } catch (err: any) {
+      setStatusMessage({
+        type: 'error',
+        text: err.message || 'فشل الاتصال بالخادم لحفظ الإعدادات'
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Upload custom background file
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -110,7 +293,9 @@ export const WelcomeStudio: React.FC = () => {
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result) {
-          setBgImageSrc(event.target.result as string);
+          const resStr = event.target.result as string;
+          setBgImageSrc(resStr);
+          setBgPath(resStr);
         }
       };
       reader.readAsDataURL(file);
@@ -120,6 +305,7 @@ export const WelcomeStudio: React.FC = () => {
   // Reset to default neutral canvas
   const handleClearBackground = () => {
     setBgImageSrc('');
+    setBgPath('');
   };
 
   // Draw card on canvas
@@ -419,7 +605,48 @@ export const WelcomeStudio: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {guilds.length > 1 && (
+            <div className="flex items-center gap-2 bg-slate-950 px-3 py-2 rounded-xl border border-slate-800 text-xs">
+              <Server className="w-4 h-4 text-indigo-400 shrink-0" />
+              <select
+                value={guildId}
+                onChange={e => handleGuildChange(e.target.value)}
+                className="bg-transparent text-white font-medium focus:outline-none cursor-pointer"
+              >
+                {guilds.map(g => (
+                  <option key={g.id} value={g.id} className="bg-slate-900 text-white">
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <button
+            id="save-welcome-config-btn"
+            onClick={handleSaveConfig}
+            disabled={isSaving}
+            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-emerald-600/25 cursor-pointer"
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>جاري الحفظ...</span>
+              </>
+            ) : saveSuccess ? (
+              <>
+                <Check className="w-4 h-4 text-white" />
+                <span>تم الحفظ بنجاح!</span>
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                <span>حفظ التعديلات (Save)</span>
+              </>
+            )}
+          </button>
+
           <button
             id="copy-card-config-btn"
             onClick={handleCopyJson}
@@ -438,6 +665,32 @@ export const WelcomeStudio: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Status Message Feedback */}
+      {statusMessage && (
+        <div
+          className={`p-4 rounded-xl border flex items-center justify-between gap-3 text-sm animate-fadeIn ${
+            statusMessage.type === 'success'
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+              : 'bg-red-500/10 border-red-500/30 text-red-300'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {statusMessage.type === 'success' ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            ) : (
+              <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
+            )}
+            <span>{statusMessage.text}</span>
+          </div>
+          <button
+            onClick={() => setStatusMessage(null)}
+            className="text-xs hover:underline cursor-pointer opacity-80 hover:opacity-100"
+          >
+            إغلاق
+          </button>
+        </div>
+      )}
 
       {/* Main Studio Viewport */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -588,7 +841,10 @@ export const WelcomeStudio: React.FC = () => {
                   {SAMPLE_BACKGROUNDS.map((sample, idx) => (
                     <button
                       key={idx}
-                      onClick={() => setBgImageSrc(sample.url)}
+                      onClick={() => {
+                        setBgImageSrc(sample.url);
+                        setBgPath(sample.url);
+                      }}
                       className={`h-16 rounded-xl overflow-hidden border-2 transition-all relative ${
                         bgImageSrc === sample.url ? 'border-indigo-500 ring-2 ring-indigo-500/30' : 'border-slate-800 opacity-60 hover:opacity-100'
                       }`}
@@ -601,12 +857,18 @@ export const WelcomeStudio: React.FC = () => {
 
               {/* Background File Path Setting */}
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5">مسار ملف الخلفية في السيرفر (Local Path)</label>
+                <label className="block text-xs font-semibold text-slate-400 mb-1.5">مسار ملف الخلفية في السيرفر (Local Path أو رابط URL)</label>
                 <input
                   type="text"
                   value={bgPath}
-                  onChange={e => setBgPath(e.target.value)}
-                  placeholder="./assets/welcome-bg.png"
+                  onChange={e => {
+                    const val = e.target.value;
+                    setBgPath(val);
+                    if (val.startsWith('http://') || val.startsWith('https://') || val.startsWith('data:')) {
+                      setBgImageSrc(val);
+                    }
+                  }}
+                  placeholder="./assets/welcome-bg.png أو https://..."
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
                 />
               </div>

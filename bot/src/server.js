@@ -12,20 +12,11 @@ import { getDatabase } from './database/index.js';
  * 3. Serves the built React SPA Dashboard from dist/.
  * 4. Handles SPA fallback routing so direct dashboard links work seamlessly.
  */
-export const startWebServer = (client) => {
+export const createApp = (client) => {
   const app = express();
-  const port = botConfig.port || 3000;
 
-  app.use(express.json());
-
-  // Determine dist folder path (handles running from project root or bot subdirectory)
-  let distPath = path.resolve(process.cwd(), 'dist');
-  if (!fs.existsSync(distPath)) {
-    const altDist = path.resolve(process.cwd(), '../dist');
-    if (fs.existsSync(altDist)) {
-      distPath = altDist;
-    }
-  }
+  app.use(express.json({ limit: '25mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
   // 1. Health check endpoint for Render & UptimeRobot
   app.get('/health', (req, res) => {
@@ -81,6 +72,62 @@ export const startWebServer = (client) => {
         .sort((a, b) => b.position - a.position)
         .map(r => ({ id: r.id, name: r.name, color: r.hexColor, position: r.position }));
       res.json({ roles });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // --------------------------------------------------------------------------
+  // REST API: Welcome Studio Configuration (Card, Background & Positioning)
+  // --------------------------------------------------------------------------
+  app.get('/api/welcome/config', async (req, res) => {
+    try {
+      const guildId = req.query.guildId || client?.guilds?.cache?.first()?.id || 'default_guild';
+      const db = getDatabase();
+      const config = await db.getGuildConfig(guildId);
+      res.json({
+        guildId,
+        welcomeEnabled: config.welcomeEnabled !== false,
+        welcomeChannelId: config.welcomeChannelId || '',
+        welcomeMessage: config.welcomeMessage || botConfig.defaults.welcomeMessage,
+        welcomeCustomText: config.welcomeCustomText || botConfig.defaults.welcomeCustomText,
+        welcomeBackgroundPath: config.welcomeBackgroundPath !== undefined && config.welcomeBackgroundPath !== null
+          ? config.welcomeBackgroundPath
+          : botConfig.defaults.welcomeBackgroundPath,
+        welcomeCardConfig: config.welcomeCardConfig || { ...botConfig.defaults.welcomeCardConfig }
+      });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post('/api/welcome/config', async (req, res) => {
+    try {
+      const guildId = req.body.guildId || client?.guilds?.cache?.first()?.id || 'default_guild';
+      const db = getDatabase();
+
+      const payload = {};
+      if (req.body.welcomeCardConfig !== undefined) {
+        payload.welcomeCardConfig = req.body.welcomeCardConfig;
+      }
+      if (req.body.welcomeBackgroundPath !== undefined) {
+        payload.welcomeBackgroundPath = req.body.welcomeBackgroundPath;
+      }
+      if (req.body.welcomeEnabled !== undefined) {
+        payload.welcomeEnabled = req.body.welcomeEnabled !== false;
+      }
+      if (req.body.welcomeChannelId !== undefined) {
+        payload.welcomeChannelId = req.body.welcomeChannelId ? String(req.body.welcomeChannelId).trim() : null;
+      }
+      if (req.body.welcomeMessage !== undefined) {
+        payload.welcomeMessage = req.body.welcomeMessage;
+      }
+      if (req.body.welcomeCustomText !== undefined) {
+        payload.welcomeCustomText = req.body.welcomeCustomText;
+      }
+
+      const updated = await db.setGuildConfig(guildId, payload);
+      res.json({ success: true, config: updated });
     } catch (e) {
       res.status(500).json({ error: e.message });
     }
@@ -244,6 +291,22 @@ export const startWebServer = (client) => {
       res.status(500).json({ error: e.message });
     }
   });
+
+  return app;
+};
+
+export const startWebServer = (client) => {
+  const app = createApp(client);
+  const port = botConfig.port || 3000;
+
+  // Determine dist folder path (handles running from project root or bot subdirectory)
+  let distPath = path.resolve(process.cwd(), 'dist');
+  if (!fs.existsSync(distPath)) {
+    const altDist = path.resolve(process.cwd(), '../dist');
+    if (fs.existsSync(altDist)) {
+      distPath = altDist;
+    }
+  }
 
   // 2. Serve built static assets from Vite dist/
   app.use(express.static(distPath));

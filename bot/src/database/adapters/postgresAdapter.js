@@ -152,7 +152,9 @@ export class PostgresDatabaseAdapter extends BaseAdapter {
       welcomeMessage: row.welcome_message || botConfig.defaults.welcomeMessage,
       welcomeCustomText: botConfig.defaults.welcomeCustomText,
       welcomeBackgroundPath: row.welcome_background_path || botConfig.defaults.welcomeBackgroundPath,
-      welcomeCardConfig: row.welcome_card_config || { ...botConfig.defaults.welcomeCardConfig },
+      welcomeCardConfig: (typeof row.welcome_card_config === 'string'
+        ? (() => { try { return JSON.parse(row.welcome_card_config); } catch { return null; } })()
+        : row.welcome_card_config) || { ...botConfig.defaults.welcomeCardConfig },
       logsChannelId: row.logs_channel_id || botConfig.defaults.logsChannelId || null,
       logsEnabled: row.logs_enabled !== false,
       commandsChannelId: row.commands_channel_id || botConfig.defaults.commandsChannelId || null,
@@ -221,7 +223,9 @@ export class PostgresDatabaseAdapter extends BaseAdapter {
       updated.welcomeEnabled,
       updated.welcomeMessage,
       updated.welcomeBackgroundPath,
-      JSON.stringify(updated.welcomeCardConfig),
+      typeof updated.welcomeCardConfig === 'string'
+        ? updated.welcomeCardConfig
+        : JSON.stringify(updated.welcomeCardConfig || botConfig.defaults.welcomeCardConfig),
       updated.logsChannelId,
       updated.logsEnabled,
       updated.commandsChannelId,
